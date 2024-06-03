@@ -297,10 +297,16 @@ public class App {
                 sql = String.format("UPDATE MesinCuci SET statMC = 0 WHERE id_MC = %d ", idMC);
                 stmt.execute(sql);
                 
-                sql = String.format("CREATE OR REPLACE VIEW [Laporan Transaksi] AS\r\n"+
-                                    "SELECT * FROM Transaksi");
+                sql = String.format("CREATE OR ALTER VIEW [Laporan Transaksi] AS\r\n" + //
+                                        "SELECT id_T,tgl_T, startT,endT,durasi,biaya,Pelanggan.nama as namaPelanggan, Pelanggan.no_HP ,Pegawai.nama AS namaPegawai, MesinCuci.nama AS namaMesinCuci, tarif ,kap, Merek.nama AS merek\r\n" + //
+                                        "FROM Transaksi\r\n" + //
+                                        "INNER JOIN Pelanggan ON Transaksi.id_Pel = Pelanggan.id_Pel\r\n" + //
+                                        "INNER JOIN Pegawai ON Transaksi.id_Pg = Pegawai.id_Pg\r\n" + //
+                                        "INNER JOIN MesinCuci ON Transaksi.id_MC = MesinCuci.id_MC\r\n" + //
+                                        "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M");
                 stmt.execute(sql);
 
+                System.out.println("Mesin Cuci telah diaktifkan");
             } else {
                 System.out.println("Mesin Cuci tidak tersedia");
                 return;
@@ -322,6 +328,9 @@ public class App {
             stmt = conn.createStatement();
             printFull(conn,"MesinCuci");
             System.out.printf("\nid Mesin Cuci : "); idMC = sc.nextInt();
+            // viewTransaksi(conn,0);  //Transaksi aktif yang diprint
+            // printFull(conn,"Transaksi");
+            viewTransaksiAktif(conn, idMC);
             System.out.printf("\nid Pelanggan : "); id_Pel = sc.nextInt();
 
 
@@ -334,18 +343,48 @@ public class App {
             if(stat==0){
                 sql = String.format("UPDATE MesinCuci SET statMC = 1 WHERE id_MC = %d", idMC);
                 stmt.execute(sql);
+
+                sql = String.format("SELECT id_T FROM Transaksi WHERE id_MC = %d AND id_Pel = %d AND biaya =0", idMC, id_Pel);
+                rs = stmt.executeQuery(sql);
+
+                //Majukan cursor ke row pertama
+                rs.next();
+                int id_T = rs.getInt(1);
                 
                 //Cari Id Transaksi, terus ubah endT , habis itu dapetin durasi & itung biaya
+
+                //Peroleh end time dari mesin cuci
                 sql = String.format("UPDATE Transaksi\r\n" + //
-                                        "set endT = FORMAT(GETDATE(), 'hh:mm:ss'),\r\n" + //
-                                        "\tdurasi = DATEDIFF(N,startT,endT),\r\n" + //
-                                        "\tbiaya = (durasi)*(SELECT tarif FROM MesinCuci WHERE Transaksi.id_MC = MesinCuci.id_MC)\r\n"+
-                                        "WHERE id_MC = %d AND id_Pel AND biaya =0", idMC, id_Pel);
+                                        "set endT = FORMAT(GETDATE(), 'hh:mm:ss')"+
+                                        "WHERE id_T = %d", id_T);
                 stmt.execute(sql);
                 
-                sql = String.format("CREATE OR REPLACE VIEW [Laporan Transaksi] AS\r\n"+
-                                    "SELECT * FROM Transaksi");
+                //Update durasi penggunaan mesin cuci
+                sql = String.format("UPDATE Transaksi\r\n" + //
+                                        "set durasi = DATEDIFF(N,startT,endT)"+
+                                        "WHERE id_T = %d", id_T);
                 stmt.execute(sql);
+
+                //Update biaya sesuai dengan tarif dan durasi penggunaan
+                sql = String.format("UPDATE Transaksi\r\n" + //
+                                        "SET biaya = (durasi/15)*(SELECT tarif FROM MesinCuci WHERE Transaksi.id_MC = MesinCuci.id_MC)"+
+                                        "WHERE id_T = %d", id_T);
+                stmt.execute(sql);
+                
+                sql = String.format("SELECT biaya FROM Transaksi WHERE id_T = %d ", id_T);
+                // int biaya = stmt.execute(sql);
+
+                sql = String.format("CREATE OR ALTER VIEW [Laporan Transaksi] AS\r\n" + //
+                                        "SELECT id_T,tgl_T, startT,endT,durasi,biaya,Pelanggan.nama as namaPelanggan, Pelanggan.no_HP ,Pegawai.nama AS namaPegawai, MesinCuci.nama AS namaMesinCuci, tarif ,kap, Merek.nama AS merek\r\n" + //
+                                        "FROM Transaksi\r\n" + //
+                                        "INNER JOIN Pelanggan ON Transaksi.id_Pel = Pelanggan.id_Pel\r\n" + //
+                                        "INNER JOIN Pegawai ON Transaksi.id_Pg = Pegawai.id_Pg\r\n" + //
+                                        "INNER JOIN MesinCuci ON Transaksi.id_MC = MesinCuci.id_MC\r\n" + //
+                                        "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M");
+                
+                System.out.println(stmt.execute(sql));
+
+                System.out.println("Mesin Cuci telah dimatikan");
 
             } else {
                 System.out.println("Mesin Cuci sudah tersedia sebelumnya");
@@ -355,21 +394,99 @@ public class App {
 
         } catch (Exception e) {
             // TODO: handle exception
+            e.printStackTrace();
         }
     }
 
 //===============================================================================================================================================
-    static void viewLaporanTransaksi(Connection conn){
+    static void viewAllTransaksi(Scanner sc,Connection conn){
         try {
-            String sql;
-            Statement stmt;
+            String sql, tahunStart, bulanStart, hariStart,tahunEnd, bulanEnd, hariEnd, tanggalMulai, tanggalAkhir;
+            Statement stmt = conn.createStatement();
+            
+            System.out.printf("\nFormat : [DD/MM/YYYY]\n");
+            System.out.printf("\nHari Awal  :"); hariStart = sc.next();
+            System.out.printf("\nBulan Awal :"); bulanStart = sc.next();
+            System.out.printf("\nTahun Awal :"); tahunStart =sc.next();
+            
+            System.out.printf("\n\t=======Hingga=======\n");
+            System.out.printf("\nHari Akhir  :"); hariEnd = sc.next();
+            System.out.printf("\nBulan Akhir :"); bulanEnd = sc.next();
+            System.out.printf("\nTahun Akhir :"); tahunEnd =sc.next();
+
+            tanggalMulai = (tahunStart.concat(bulanStart).concat(hariStart));
+            tanggalAkhir = (tahunEnd.concat(bulanEnd).concat(hariEnd));
+
+            System.out.println(tanggalMulai+"====="+tanggalAkhir);
+
+            sql = String.format("SELECT * FROM Transaksi WHERE tgl_T > '%s' AND tgl_T < '%s'", tanggalMulai,tanggalAkhir);
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            System.out.println("\n=======================\n");
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
 
             
         } catch (Exception e) {
             // TODO: handle exception
+            e.printStackTrace();
         }
     }
 
+
+    
+    static void viewTransaksiAktif(Connection conn, int idMC){
+        try {
+            Statement stmt = conn.createStatement();
+            String sql;
+            ResultSet rs;
+            
+            sql = String.format("SELECT * FROM Transaksi WHERE endT LIKE '0' AND id_MC = %d",idMC);
+            rs = stmt.executeQuery(sql);
+            
+            System.out.println("\n=======================\n");
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
+
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+    }
+//===========================================================================================================
 
     /*
      * Method untuk memgvisualisasikan seluruh table yang tersedia pada database
@@ -456,14 +573,14 @@ public class App {
                     //Init variabel untuk aksi pilihan user
                     int user_Action; 
                     System.out.printf("Select Data-Related Action:"+
-                                    "\n1. Insert Data\n2. Delete Data\n3. Update Data\n4. Show MesinCuci\n5. Kelola Transaksi Pelanggan\n6. Show All Transaction "+
+                                    "\n1. Insert Data\n2. Delete Data\n3. Update Data\n4. Show MesinCuci\n5. Kelola Transaksi Pelanggan\n6. Show Transaction\n7. Reset Status\n"+
                                     "\t-> ");
                     user_Action = sc.nextInt();
                     
-                    System.out.println("\n\n ======Available Table======\n");
+                    // System.out.println("\n\n ======Available Table======\n");
                     
                     //Print untuk tabel yang tersedia
-                    checkAvailableTable(conn);
+                    // checkAvailableTable(conn);
     
                     if(user_Action == 1){       //Pilihan untuk input data
                         String dbName;
@@ -505,15 +622,17 @@ public class App {
                         updateMC(sc, conn);
                         
                     } else if(user_Action ==2) {        //Delete data
+
                         if(deleteDataMesinCuci(sc, conn)) System.out.println("Delete Successful");
                         else System.out.println("Delete Failed");
                         
                     } else if(user_Action==4){
 
                         printFull(conn,"MesinCuci");
-                    } else if(user_Action==6){
-                        System.out.println("1. Rekam Mulai Transaksi Mesin Cuci\n2. Rekam Akhir Transaksi Mesin Cuci");
-                        int inpTransaksi= sc.nextInt();
+                    } else if(user_Action==5){
+
+                        System.out.println("\n1. Mulai Transaksi Mesin Cuci\n2. Akhiri Transaksi Mesin Cuci\n");
+                        System.out.println("\t->");int inpTransaksi= sc.nextInt();
 
                         if(inpTransaksi==1){
                             startPenggunaanMC(sc, conn);
@@ -522,8 +641,19 @@ public class App {
                         }
 
 
-                    } else if(user_Action==5){
-                        printFull(conn,"Transaksi");
+                    } else if(user_Action==6){
+                        // printFull(conn,"Transaksi");
+                        System.out.println("\n1. Seluruh Transaksi\n2. Transaksi pada rentang tanggal\n");
+                        System.out.println("\t->");int inpTransaksi= sc.nextInt();
+
+                        if(inpTransaksi==1){
+                            printFull(conn, "[Laporan Transaksi]");
+                        } else if (inpTransaksi==2){
+                            viewAllTransaksi(sc, conn);
+                        }
+
+                    } else if(user_Action==7){
+                        resetStatusMesinCuci(conn);
                     }
                     
                     else {
@@ -584,7 +714,22 @@ public class App {
         
     }
 
+    static void resetStatusMesinCuci(Connection conn){
+        try {
+            Statement stmt = conn.createStatement();
+            String sql;
+
+            sql = String.format("UPDATE MesinCuci SET statMC = 1");
+            stmt.execute(sql);
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+    }
+
     static void launchPelMenu(Connection conn, Scanner sc){
         //TODO : Buat menu untuk pelanggan
     }
 }
+
+
+    
