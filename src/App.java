@@ -43,7 +43,8 @@ public class App {
                                         
                     //Launch Menu Pilihan
                     if (user_Input == 1){   //Menu pelanggan
-                        System.out.println("Belum diimplementasikan");
+                        // System.out.println("Belum diimplementasikan");
+                        launchPelMenu(conn, sc);
                     }else{                  //Menu Pegawai
                         
                         //Nanti implementasikan login 
@@ -555,6 +556,7 @@ public class App {
     }
 
 
+
     /*
      * Method yang digunakan untuk menyimpan script inisialisasi keseluruhan tabel 
      * 
@@ -726,8 +728,101 @@ public class App {
         }
     }
 
+
+//====================================================================================================================
     static void launchPelMenu(Connection conn, Scanner sc){
-        //TODO : Buat menu untuk pelanggan
+        int user_Input;
+
+        try {
+            
+            do{
+                user_Input = isContinuing(sc); 
+                
+                if(user_Input==1){
+                    //Init variabel untuk aksi pilihan user
+                    int user_Action; 
+                    System.out.printf("Select Data-Related Action:"+
+                                    "\n1. Lihat Tarif\n2. Lihat Mesin Cuci yang Tersedia\n"+
+                                    "\t-> ");
+                    user_Action = sc.nextInt();
+                    
+                    if(user_Action==1){
+                        printTarif(conn);
+                    } else if (user_Action==2){
+                        printMesinCuciTersedia(conn);
+                    }
+                }
+                //Jeda sebelum melakukan aksi selanjutnya
+                Thread.sleep(1000);
+            }while(user_Input==1);
+        } catch (Exception e) {
+         
+            e.printStackTrace();
+        }
+    }
+    
+    
+
+    static void printTarif(Connection conn) {
+        try{
+            System.out.println("\n=======================\n");
+            Statement stmt = conn.createStatement();
+            String sql = String.format("SELECT id_MC, MesinCuci.nama, tarif, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M");
+            ResultSet rs = stmt.executeQuery(sql);
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
+
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+    static void printMesinCuciTersedia(Connection conn) {
+        try{
+            System.out.println("\n=======================\n");
+            Statement stmt = conn.createStatement();
+            String sql = String.format("SELECT id_MC, MesinCuci.nama, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M WHERE statMC = 1");
+            ResultSet rs = stmt.executeQuery(sql);
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
+
+        } catch(Exception e){
+            e.printStackTrace();
+        }
     }
 }
 
