@@ -449,7 +449,7 @@ public class App {
             e.printStackTrace();
         }
     }
-
+//
 
     
     static void viewTransaksiAktif(Connection conn, int idMC){
