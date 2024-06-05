@@ -33,39 +33,7 @@ public class App {
                 //Siapkan Statement
                 Statement stmt = conn.createStatement();
                 
-                //Init variabel untuk input user
-                int user_Input;
-
-                //Print to screen untuk pilihan aksi yang ingin dipilih
-                System.out.printf("Masuk Sebagai:"+
-                                        "\n1. Pelanggan\n2. Pegawai\n"+
-                                        "\t-> "); user_Input= sc.nextInt();
-                    welcome();
-                    //Launch Menu Pilihan
-                    if (user_Input == 1){   //Menu pelanggan
-                        // System.out.println("Belum diimplementasikan");
-                        launchPelMenu(conn, sc);
-                    }else{                  //Menu Pegawai
-                        
-                        //Nanti implementasikan login 
-                        boolean isLogin = false;
-                        do {
-                            
-                            if (checkPegawai(conn, sc)) {
-                                isLogin = true;
-                                launchPGMenu(conn, sc);
-                            
-                            }
-                            else {
-                                System.out.println("Login gagal");
-                                
-                            }
-                        } while (!isLogin);
-
-                    //Kemungkinan nanti akan ditambahkan intermediary ketika launch menu, akan diselect berdasarkan role (pegawai & pemilik)
-                }
-                
-                
+                start(conn,sc);
             }
             
         } catch (SQLException ex) {
@@ -80,6 +48,40 @@ public class App {
                 ex.printStackTrace();
             }
             
+        }
+    }
+
+    static void start(Connection conn, Scanner sc){
+        //Init variabel untuk input user
+        int user_Input;
+
+        //Print to screen untuk pilihan aksi yang ingin dipilih
+        System.out.printf("Masuk Sebagai:"+
+                                "\n1. Pelanggan\n2. Pegawai\n"+
+                                "\t-> "); user_Input= sc.nextInt();
+            welcome();
+            //Launch Menu Pilihan
+            if (user_Input == 1){   //Menu pelanggan
+                // System.out.println("Belum diimplementasikan");
+                launchPelMenu(conn, sc);
+            }else{                  //Menu Pegawai
+                
+                //Nanti implementasikan login 
+                boolean isLogin = false;
+                do {
+                    
+                    if (checkPegawai(conn, sc)) {
+                        isLogin = true;
+                        launchPGMenu(conn, sc);
+                    
+                    }
+                    else {
+                        System.out.println("Login gagal");
+                        
+                    }
+                } while (!isLogin);
+
+            //Kemungkinan nanti akan ditambahkan intermediary ketika launch menu, akan diselect berdasarkan role (pegawai & pemilik)
         }
     }
 
@@ -206,10 +208,62 @@ public class App {
         }
         
     }
+    
 
 //===============================================================================================================================================
 //TODO : 
 //Update mesin cuci
+    static void updateMC(Scanner sc, Connection conn){
+        try {
+            
+
+            String sql, inpYN,nama;
+            int idx ,idM, kap;
+            Statement stmt = conn.createStatement();
+            sql = "";
+            
+            printFull(conn,"MesinCuci");
+            // System.out.println("Atribut yang ingin dipilih : ");
+            System.out.printf("\nid Mesin Cuci : ");idx =sc.nextInt();
+
+            System.out.printf("\nKapasitas : "); kap = selectKap(sc, conn);
+            printFull(conn,"Merek");
+            System.out.printf("\nid Merek: ");idM =sc.nextInt();
+
+            System.out.printf("\nUpdate Nama?[Y/N] :"); inpYN = sc.next().toLowerCase();
+            
+            if(inpYN.equals("")|| inpYN.toLowerCase().equals("y")){
+                System.out.printf("\n Input nama (<20) :"); nama= sc.next();
+                                
+                    sql = String.format("UPDATE MesinCuci\n" + //
+                    "SET id_M = %d, kap = %d, nama = '%s'\r\n"+
+                    "WHERE id_MC = %d",idM,kap,nama,idx);
+                    
+            } else if (inpYN.toLowerCase().equals("n")){
+                    sql = String.format("UPDATE MesinCuci\n" + //
+                        "SET id_M = %d, kap = %d\r\n"+
+                        "WHERE id_MC = %d",idM,kap,idx);
+                    
+                    
+                }
+                
+            stmt.execute(sql);
+
+            sql = String.format("UPDATE MesinCuci\r\n" + //
+                                "SET tarif = kap*1500*id_M/2",idx);
+            stmt.execute(sql);
+
+            printFull(conn,"MesinCuci");
+
+
+           
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+           
+        }
+
+    }
     static void updateMC(Scanner sc, Connection conn){
         try {
             
@@ -363,7 +417,7 @@ public class App {
                 rs.next();
                 int durasi = rs.getInt(1);
                 
-                sql = String.format("SELECT tarif FROM MesinCuci JOIN Transaksi ON Transaksi.id_MC = MesinCuci.id_MC");
+                sql = String.format("SELECT tarif FROM MesinCuci JOIN Transaksi ON Transaksi.id_MC = MesinCuci.id_MC WHERE id_T = %d",id_T);
                 rs = stmt.executeQuery(sql);
                 rs.next();
                 int tarif = rs.getInt(1);
@@ -393,7 +447,8 @@ public class App {
                                         "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M");
                 
                 stmt.execute(sql);
-
+                System.out.printf("\nTotal biaya jasa : %d",biaya);
+                Thread.sleep(500);
                 System.out.println("Mesin Cuci telah dimatikan");
 
             } else {
@@ -451,6 +506,14 @@ public class App {
                     System.out.print(columnValue);
                 }System.out.println();
             }
+            sql = String.format("SELECT SUM(biaya) FROM Transaksi WHERE tgl_T > '%s' AND tgl_T < '%s'", tanggalMulai,tanggalAkhir);
+            rs = stmt.executeQuery(sql);
+            rs.next();
+
+            int pendapatan = rs.getInt(1);
+            
+            System.out.printf("\n\nPendapatan %s/%s/%s - %s/%s/%s = %d",hariStart,bulanStart,tahunStart,hariEnd,bulanEnd,tahunEnd,pendapatan);
+
             System.out.println("\n=======================\n");
 
             
@@ -682,7 +745,7 @@ public class App {
                     //Init variabel untuk aksi pilihan user
                     int user_Action; 
                     System.out.printf("Select Data-Related Action:"+
-                                    "\n1. Insert Data\n2. Delete Data\n3. Update Data\n4. Show MesinCuci\n5. Kelola Transaksi Pelanggan\n6. Show Transaction\n7. Reset Status\n"+
+                                    "\n1. Insert Data\n2. Delete Data\n3. Update Data\n4. Show MesinCuci\n5. Kelola Transaksi Pelanggan\n6. Show Transaction\n7. Reset Status\n8. Log Out\n"+
                                     "\t-> ");
                     user_Action = sc.nextInt();
                     
@@ -753,7 +816,7 @@ public class App {
 
                     } else if(user_Action==6){
                         // printFull(conn,"Transaksi");
-                        System.out.println("\n1. Seluruh Transaksi\n2. Transaksi pada rentang tanggal\n");
+                        System.out.println("\n1. Seluruh Transaksi\n2. Transaksi dan pendapatan pada rentang tanggal\n");
                         System.out.println("\t->");int inpTransaksi= sc.nextInt();
 
                         if(inpTransaksi==1){
@@ -764,13 +827,18 @@ public class App {
 
                     } else if(user_Action==7){
                         resetStatusMesinCuci(conn);
+                    }else if(user_Action==8){
+                        start(conn, sc);
                     }
                     
                     else {
                         
+                        // fixBiaya(conn, sc);
                         System.out.println();
+                        
                     }
-    
+                    
+                    System.out.println();
                 //Hentikan Program dengan pilihan
                 }else if(user_Input==2){
                     System.out.println("\n===========Thank You===========");
