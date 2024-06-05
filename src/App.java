@@ -40,7 +40,7 @@ public class App {
                 System.out.printf("Masuk Sebagai:"+
                                         "\n1. Pelanggan\n2. Pegawai\n"+
                                         "\t-> "); user_Input= sc.nextInt();
-                                        
+                    welcome();
                     //Launch Menu Pilihan
                     if (user_Input == 1){   //Menu pelanggan
                         // System.out.println("Belum diimplementasikan");
@@ -147,16 +147,16 @@ public class App {
     static void insertDataPelanggan(Scanner sc, Connection conn ) throws SQLException{
         try{
             int idx;
-            String sql, nama, email;
-            int noHP;
+            String sql, nama, email,alamat, noHP;
             //Connect Statement
             Statement stmt = conn.createStatement();  
 
             //Print untuk Mesin Cuci dan Merek yang tersedia
             printFull(conn,"Kelurahan");
             System.out.printf("Nama Pelanggan : "); nama =sc.next();
+            System.out.printf("Alamat Pelanggan : "); alamat =sc.next();
             System.out.printf("Email Pelanggan : "); email =sc.next();
-            System.out.printf("No HP : "); noHP=sc.nextInt();
+            System.out.printf("No HP : "); noHP=sc.next();
             // System.out.printf("Lokasi Kelurahan : "); idx =sc.nextInt();
 
 
@@ -165,21 +165,13 @@ public class App {
             
             //Insert Data Mesin Cuci
             String insertDP = String.format(
-                "Insert into Pelanggan(nama,no_HP,email,id_Kel) VALUES "+
-                "('%s','%s','%s',%d)",nama, String.valueOf(noHP), email,idx);
+                "Insert into Pelanggan(nama,no_HP',alamat,email,id_Kel) VALUES "+
+                "('%s','%s','%s',%d)",nama, noHP,alamat, email,idx);
 
             //Execute insert data produk ke tabel
             stmt.execute(insertDP);
   
-            
-            //Update harga tarif yang masih 0
-            // sql = String.format("UPDATE MesinCuci Set tarif = kap*1500*id_M/2 WHERE tarif = 0 ");
-            // stmt.execute(sql);
-            
-            //Print tabel mesincuci yang sudah di insert dengan data baru
-            // printFull(conn,"MesinCuci");
-
-            printFull(conn,"Pelanggan");
+            printPelangganKel(conn);
 
         } catch (Exception e){
             e.printStackTrace();
@@ -280,7 +272,7 @@ public class App {
             stmt = conn.createStatement();
             printFull(conn,"MesinCuci");
             System.out.printf("\nid Mesin Cuci : "); idMC = sc.nextInt();
-            printFull(conn,"Pelanggan");
+            printPelangganKel(conn);
             System.out.printf("\nid Pelanggan : "); id_Pel = sc.nextInt();
             printFull(conn,"Pegawai");
             System.out.printf("\nid Pegawai : "); id_Pg = sc.nextInt();
@@ -323,7 +315,7 @@ public class App {
     static void endPenggunaanMC(Scanner sc ,Connection conn){
         Statement stmt;
         String sql;
-        int idMC, id_Pel;
+        int idMC, id_Pel, biaya;
 
         try {
             stmt = conn.createStatement();
@@ -366,10 +358,27 @@ public class App {
                                         "WHERE id_T = %d", id_T);
                 stmt.execute(sql);
 
+                sql = String.format("Select durasi FROM Transaksi WHERE id_T = %d", id_T);
+                rs = stmt.executeQuery(sql);
+                rs.next();
+                int durasi = rs.getInt(1);
+                
+                sql = String.format("SELECT tarif FROM MesinCuci JOIN Transaksi ON Transaksi.id_MC = MesinCuci.id_MC");
+                rs = stmt.executeQuery(sql);
+                rs.next();
+                int tarif = rs.getInt(1);
+          
+                if(durasi<15) {
+              
+                    biaya = tarif;
+                }
+                else {
+                    biaya = ((int)Math.ceil(durasi/15)) *tarif;
+                }
                 //Update biaya sesuai dengan tarif dan durasi penggunaan
                 sql = String.format("UPDATE Transaksi\r\n" + //
-                                        "SET biaya = (durasi/15)*(SELECT tarif FROM MesinCuci WHERE Transaksi.id_MC = MesinCuci.id_MC)"+
-                                        "WHERE id_T = %d", id_T);
+                                        "SET biaya = %d"+
+                                        "WHERE id_T = %d",biaya, id_T);
                 stmt.execute(sql);
                 
                 sql = String.format("SELECT biaya FROM Transaksi WHERE id_T = %d ", id_T);
@@ -383,7 +392,7 @@ public class App {
                                         "INNER JOIN MesinCuci ON Transaksi.id_MC = MesinCuci.id_MC\r\n" + //
                                         "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M");
                 
-                System.out.println(stmt.execute(sql));
+                stmt.execute(sql);
 
                 System.out.println("Mesin Cuci telah dimatikan");
 
@@ -459,7 +468,7 @@ public class App {
             String sql;
             ResultSet rs;
             
-            sql = String.format("SELECT * FROM Transaksi WHERE endT LIKE '0' AND id_MC = %d",idMC);
+            sql = String.format("SELECT * FROM Transaksi WHERE id_MC = %d",idMC);
             rs = stmt.executeQuery(sql);
             
             System.out.println("\n=======================\n");
@@ -556,6 +565,104 @@ public class App {
     }
 
 
+    /*
+     * Print spesifik
+     */
+
+    static void printTarif(Connection conn) {
+        try{
+            System.out.println("\n=======================\n");
+            Statement stmt = conn.createStatement();
+            String sql = String.format("SELECT id_MC, MesinCuci.nama, tarif, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M");
+            ResultSet rs = stmt.executeQuery(sql);
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
+
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+    static void printMesinCuciTersedia(Connection conn) {
+        try{
+            System.out.println("\n=======================\n");
+            Statement stmt = conn.createStatement();
+            String sql = String.format("SELECT id_MC, MesinCuci.nama, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M WHERE statMC = 1");
+            ResultSet rs = stmt.executeQuery(sql);
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
+
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    static void printPelangganKel(Connection conn) {
+        try{
+            System.out.println("\n=======================\n");
+            Statement stmt = conn.createStatement();
+            String sql = String.format("SELECT id_Pel, Pelanggan.nama, no_HP,alamat, email, Kelurahan.nama FROM Pelanggan JOIN Kelurahan ON Pelanggan.id_Kel = Kelurahan.id_Kel");
+            ResultSet rs = stmt.executeQuery(sql);
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
+
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+//===========================================================================================================================================
 
     /*
      * Method yang digunakan untuk menyimpan script inisialisasi keseluruhan tabel 
@@ -586,6 +693,7 @@ public class App {
     
                     if(user_Action == 1){       //Pilihan untuk input data
                         String dbName;
+                        checkAvailableTable(conn);
                         System.out.printf("\n\n Select Table: ");
                         dbName = sc.next().toLowerCase();
                         switch (dbName) {
@@ -612,7 +720,7 @@ public class App {
                                 
                                 break;
                             case "pelanggan":
-                                printFull(conn,"Pelanggan");
+                                printPelangganKel(conn);
 
                                 insertDataPelanggan(sc, conn);
                                 
@@ -762,67 +870,33 @@ public class App {
     }
     
     
+    static void welcome(){
+        System.out.printf("\r\n" + 
+                        "░  ░░░░  ░░        ░░  ░░░░░░░░░      ░░░░      ░░░  ░░░░  ░░        ░\r\n" + //
+                        "▒  ▒  ▒  ▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒   ▒▒   ▒▒  ▒▒▒▒▒▒▒\r\n" + //
+                        "▓        ▓▓      ▓▓▓▓  ▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓  ▓▓▓▓  ▓▓        ▓▓      ▓▓▓\r\n" + //
+                        "█   ██   ██  ████████  ████████  ████  ██  ████  ██  █  █  ██  ███████\r\n" + //
+                        "█  ████  ██        ██        ███      ████      ███  ████  ██        █\r\n" + //
+                        "                                                                      \r\n");
+                
+        try {
+            System.out.println("\n\n========================================================================\n\n");
 
-    static void printTarif(Connection conn) {
-        try{
-            System.out.println("\n=======================\n");
-            Statement stmt = conn.createStatement();
-            String sql = String.format("SELECT id_MC, MesinCuci.nama, tarif, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M");
-            ResultSet rs = stmt.executeQuery(sql);
-            ResultSetMetaData rsmd = rs.getMetaData();
+            Thread.sleep(1000);
+            System.out.printf("░   ░░░  ░░        ░░  ░░░░  ░░░      ░░░        ░░░░░░░░░      ░░░░      ░░░       ░░░       ░░\r\n" + //
+                            "▒    ▒▒  ▒▒  ▒▒▒▒▒▒▒▒  ▒  ▒  ▒▒  ▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒▒▒▒▒▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒\r\n" + //
+                            "▓  ▓  ▓  ▓▓      ▓▓▓▓        ▓▓  ▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓  ▓▓▓▓  ▓▓       ▓▓▓       ▓▓\r\n" + //
+                            "█  ██    ██  ████████   ██   ██  ████  █████  ███████████  ████  ██  ████  ██  ███  ███  ███████\r\n" + //
+                            "█  ███   ██        ██  ████  ███      ███        █████████      ████      ███  ████  ██  ███████");
     
-            int numberOfColumn = rsmd.getColumnCount();
-            for (int i =1; i<=numberOfColumn;i++){
-                if(i>1) System.out.print("\t");
-                String columnName = rsmd.getColumnName(i);
-                System.out.print(columnName);
-            }
-            System.out.println();
-
-            while(rs.next()){
-                for (int i =1; i<=numberOfColumn;i++){
-                    
-                    if(i>1) System.out.print("\t");
-                    String columnValue = rs.getString(i);
-                    System.out.print(columnValue);
-                }System.out.println();
-            }
-            System.out.println("\n=======================\n");
-
-        } catch(Exception e){
+        
+        System.out.println("\n\n================================================================================================\n\n");
+                            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-    }
-    
-    static void printMesinCuciTersedia(Connection conn) {
-        try{
-            System.out.println("\n=======================\n");
-            Statement stmt = conn.createStatement();
-            String sql = String.format("SELECT id_MC, MesinCuci.nama, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M WHERE statMC = 1");
-            ResultSet rs = stmt.executeQuery(sql);
-            ResultSetMetaData rsmd = rs.getMetaData();
-    
-            int numberOfColumn = rsmd.getColumnCount();
-            for (int i =1; i<=numberOfColumn;i++){
-                if(i>1) System.out.print("\t");
-                String columnName = rsmd.getColumnName(i);
-                System.out.print(columnName);
-            }
-            System.out.println();
 
-            while(rs.next()){
-                for (int i =1; i<=numberOfColumn;i++){
-                    
-                    if(i>1) System.out.print("\t");
-                    String columnValue = rs.getString(i);
-                    System.out.print(columnValue);
-                }System.out.println();
-            }
-            System.out.println("\n=======================\n");
-
-        } catch(Exception e){
-            e.printStackTrace();
-        }
     }
 }
 
