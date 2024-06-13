@@ -154,21 +154,23 @@ public class App {
             Statement stmt = conn.createStatement();  
 
             //Print untuk Mesin Cuci dan Merek yang tersedia
-            printFull(conn,"Kelurahan");
-            System.out.printf("Nama Pelanggan : "); nama =sc.next();
-            System.out.printf("Alamat Pelanggan : "); alamat =sc.next();
-            System.out.printf("Email Pelanggan : "); email =sc.next();
-            System.out.printf("No HP : "); noHP=sc.next();
-            // System.out.printf("Lokasi Kelurahan : "); idx =sc.nextInt();
+            
+            System.out.printf("\nNama Pelanggan : "); nama =sc.next();
+            System.out.printf("\nEmail Pelanggan : "); email =sc.next();
+            System.out.printf("\nNo HP : "); noHP=sc.next();
+            
+            printFull(conn,"\nKelurahan");
+            System.out.printf("\nId Kelurahan :\t");idx = sc.nextInt();
+            System.out.printf("\nAlamat Pelanggan : "); alamat =sc.next().concat(" "+sc.next());
 
 
             //Input user untuk id merek
-            System.out.printf("\nId Kelurahan :\t");idx = sc.nextInt();
             
             //Insert Data Mesin Cuci
+            System.out.println(alamat);
             String insertDP = String.format(
-                "Insert into Pelanggan(nama,no_HP',alamat,email,id_Kel) VALUES "+
-                "('%s','%s','%s',%d)",nama, noHP,alamat, email,idx);
+                "Insert into Pelanggan(nama,no_HP,alamat,email,id_Kel) VALUES "+
+                "('%s','%s','%s','%s',%d)",nama, noHP,alamat, email,idx);
 
             //Execute insert data produk ke tabel
             stmt.execute(insertDP);
@@ -197,7 +199,31 @@ public class App {
             printFull(conn,"MesinCuci");
             System.out.println("Id Mesin Cuci : ");idx =sc.nextInt();
 
-            sql = String.format("DELETE FROM MesinCuci WHERE id_MC = %d",idx);
+            // sql = String.format("DELETE FROM MesinCuci WHERE id_MC = %d",idx);
+            sql = String.format("UPDATE MesinCuci SET flag = 0 WHERE id_MC = %d",idx);
+            stmt.execute(sql);
+
+            return true;
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return false;
+        }
+    }
+        
+    static boolean deletePelanggan(Scanner sc, Connection conn){   
+        try {
+            String sql;
+            int idx;
+            Statement stmt = conn.createStatement();
+
+
+            printFull(conn,"Pelanggan");
+            System.out.println("Id Pelanggan : ");idx =sc.nextInt();
+
+            // sql = String.format("DELETE FROM Pelanggan WHERE id_Pel = %d",idx);
+            sql = String.format("UPDATE Pelanggan SET flag = 0 WHERE id_Pel = %d",idx);
+
             stmt.execute(sql);
 
             return true;
@@ -237,7 +263,7 @@ public class App {
                                 
                     sql = String.format("UPDATE MesinCuci\n" + //
                     "SET id_M = %d, kap = %d, nama = '%s'\r\n"+
-                    "WHERE id_MC = %d",idM,kap,nama,idx);
+                    "WHERE id_MC = %d ",idM,kap,nama,idx);
                     
             } else if (inpYN.toLowerCase().equals("n")){
                     sql = String.format("UPDATE MesinCuci\n" + //
@@ -250,7 +276,8 @@ public class App {
             stmt.execute(sql);
 
             sql = String.format("UPDATE MesinCuci\r\n" + //
-                                "SET tarif = kap*1500*id_M/2",idx);
+                                "SET tarif = kap*1500*id_M/2"+
+                                "WHERE flag = 1",idx);
             stmt.execute(sql);
 
             printFull(conn,"MesinCuci");
@@ -264,53 +291,67 @@ public class App {
         }
 
     }
-    static void updateMC(Scanner sc, Connection conn){
+    static void updatePelanggan(Scanner sc, Connection conn){
         try {
             
-
-            String sql, inpYN,nama;
-            int idx ,idM, kap;
+            //nama, noHP, email, alamat
+            String sql, inpYNAlamat,inpYNHP, noHP, alamat;
+            int idx, id_Kel;
             Statement stmt = conn.createStatement();
             sql = "";
             
-            printFull(conn,"MesinCuci");
+            printFull(conn,"Pelanggan");
             // System.out.println("Atribut yang ingin dipilih : ");
-            System.out.printf("\nid Mesin Cuci : ");idx =sc.nextInt();
+            System.out.printf("\nid Pelanggan: ");idx =sc.nextInt();
 
-            System.out.printf("\nKapasitas : "); kap = selectKap(sc, conn);
-            printFull(conn,"Merek");
-            System.out.printf("\nid Merek: ");idM =sc.nextInt();
+            System.out.printf("\nGanti No HP? [Y/N] : ");inpYNHP =sc.next().toLowerCase();
 
-            System.out.printf("\nUpdate Nama?[Y/N] :"); inpYN = sc.next().toLowerCase();
+
+            System.out.printf("\nGanti Alamat? [Y/N] :"); inpYNAlamat = sc.next().toLowerCase();
             
-            if(inpYN.equals("")|| inpYN.toLowerCase().equals("y")){
-                System.out.printf("\n Input nama (<20) :"); nama= sc.next();
-                                
-                    sql = String.format("UPDATE MesinCuci\n" + //
-                    "SET id_M = %d, kap = %d, nama = '%s'\r\n"+
-                    "WHERE id_MC = %d",idM,kap,nama,idx);
-                    
-            } else if (inpYN.toLowerCase().equals("n")){
-                    sql = String.format("UPDATE MesinCuci\n" + //
-                        "SET id_M = %d, kap = %d\r\n"+
-                        "WHERE id_MC = %d",idM,kap,idx);
-                    
-                    
-                }
+            
+            
+            if(inpYNAlamat.equals("y")&&inpYNHP.toLowerCase().equals("y")){
+                
+                System.out.printf("\n Input No HP  (<=12) :"); noHP = sc.next();
+                
+                printFull(conn, "Kelurahan");
+                System.out.printf("\n Input ID Kelurahan :"); id_Kel = sc.nextInt();
+                System.out.printf("\n Input Alamat (<30) :"); alamat =sc.next().concat(" "+sc.next());
+                
+                
+                sql = String.format("UPDATE Pelanggan\n" + //
+                "SET noHP = '%s', alamat = '%s', id_Kel = %d\r\n"+
+                "WHERE id_Pel = %d AND flag = 1",noHP,alamat, id_Kel, idx);
+                
+            } else if (inpYNAlamat.toLowerCase().equals("n") && inpYNHP.toLowerCase().equals("y")){
+                System.out.printf("\n Input No HP (<=12) :"); noHP= sc.next();
+                sql = String.format("UPDATE Pelanggan\n" + //
+                "SET noHP = '%s'\r\n"+
+                "WHERE id_Pel = %d AND flag = 1",noHP,idx);
+                
+                
+            }else if (inpYNAlamat.toLowerCase().equals("y") && inpYNHP.toLowerCase().equals("n")){
+                
+                printFull(conn, "Kelurahan");
+                System.out.printf("\n Input ID Kelurahan :"); id_Kel = sc.nextInt();
+                System.out.printf("\n Input Alamat (<30) :"); alamat =sc.next().concat(" "+sc.next());
+                
+                sql = String.format("UPDATE Pelanggan\n" + //
+                    "SET alamat = '%s' , id_Kel = %d\r\n"+
+                    "WHERE id_Pel = %d AND flag = 1",alamat,id_Kel,idx);
+            }
+            else {
+                return;
+            }
                 
             stmt.execute(sql);
-
-            sql = String.format("UPDATE MesinCuci\r\n" + //
-                                "SET tarif = kap*1500*id_M/2",idx);
-            stmt.execute(sql);
-
-            printFull(conn,"MesinCuci");
-
-
-           
+            printFull(conn,"Pelanggan");
         } catch (SQLException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("Pelanggan tidak ada");
+
            
         }
 
@@ -325,13 +366,14 @@ public class App {
         try {
             stmt = conn.createStatement();
             printFull(conn,"MesinCuci");
+            // printMesinCuciTersedia(conn);
             System.out.printf("\nid Mesin Cuci : "); idMC = sc.nextInt();
             printPelangganKel(conn);
             System.out.printf("\nid Pelanggan : "); id_Pel = sc.nextInt();
             printFull(conn,"Pegawai");
             System.out.printf("\nid Pegawai : "); id_Pg = sc.nextInt();
 
-            sql = String.format("SELECT statMC FROM MesinCuci WHERE id_MC = %d", idMC);
+            sql = String.format("SELECT statMC FROM MesinCuci WHERE id_MC = %d AND flag = 1", idMC);
             ResultSet rs = stmt.executeQuery(sql);
             rs.next();
             int stat = rs.getInt(1);
@@ -341,7 +383,7 @@ public class App {
                 sql = String.format("INSERT INTO Transaksi(id_MC,id_Pel, id_Pg) VALUES(%d, %d, %d)", idMC,id_Pel,id_Pg);
                 stmt.execute(sql);
                 
-                sql = String.format("UPDATE MesinCuci SET statMC = 0 WHERE id_MC = %d ", idMC);
+                sql = String.format("UPDATE MesinCuci SET statMC = 0 WHERE id_MC = %d AND flag = 1", idMC);
                 stmt.execute(sql);
                 
                 sql = String.format("CREATE OR ALTER VIEW [Laporan Transaksi] AS\r\n" + //
@@ -350,7 +392,8 @@ public class App {
                                         "INNER JOIN Pelanggan ON Transaksi.id_Pel = Pelanggan.id_Pel\r\n" + //
                                         "INNER JOIN Pegawai ON Transaksi.id_Pg = Pegawai.id_Pg\r\n" + //
                                         "INNER JOIN MesinCuci ON Transaksi.id_MC = MesinCuci.id_MC\r\n" + //
-                                        "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M");
+                                        "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M\r\n"+
+                                        "WHERE MesinCuci.flag = 1 AND Pelanggan.flag = 1");
                 stmt.execute(sql);
 
                 System.out.println("Mesin Cuci telah diaktifkan");
@@ -374,6 +417,8 @@ public class App {
         try {
             stmt = conn.createStatement();
             printFull(conn,"MesinCuci");
+            // printMesinCuciTersedia(conn);
+
             System.out.printf("\nid Mesin Cuci : "); idMC = sc.nextInt();
             // viewTransaksi(conn,0);  //Transaksi aktif yang diprint
             // printFull(conn,"Transaksi");
@@ -388,10 +433,10 @@ public class App {
 
             //Sebenernya ga harus soalnya kalo dri sisi pelanggan, dia ga bisa liat yang ga aktif
             if(stat==0){
-                sql = String.format("UPDATE MesinCuci SET statMC = 1 WHERE id_MC = %d", idMC);
+                sql = String.format("UPDATE MesinCuci SET statMC = 1 WHERE id_MC = %d AND flag = 1", idMC);
                 stmt.execute(sql);
 
-                sql = String.format("SELECT id_T FROM Transaksi WHERE id_MC = %d AND id_Pel = %d AND biaya =0", idMC, id_Pel);
+                sql = String.format("SELECT id_T FROM Transaksi WHERE id_MC = %d AND id_Pel = %d AND biaya =0 AND flag = 1", idMC, id_Pel);
                 rs = stmt.executeQuery(sql);
 
                 //Majukan cursor ke row pertama
@@ -403,13 +448,13 @@ public class App {
                 //Peroleh end time dari mesin cuci
                 sql = String.format("UPDATE Transaksi\r\n" + //
                                         "set endT = FORMAT(GETDATE(), 'hh:mm:ss')"+
-                                        "WHERE id_T = %d", id_T);
+                                        "WHERE id_T = %d AND flag = 1", id_T);
                 stmt.execute(sql);
                 
                 //Update durasi penggunaan mesin cuci
                 sql = String.format("UPDATE Transaksi\r\n" + //
                                         "set durasi = DATEDIFF(N,startT,endT)"+
-                                        "WHERE id_T = %d", id_T);
+                                        "WHERE id_T = %d AND flag = 1", id_T);
                 stmt.execute(sql);
 
                 sql = String.format("Select durasi FROM Transaksi WHERE id_T = %d", id_T);
@@ -417,7 +462,7 @@ public class App {
                 rs.next();
                 int durasi = rs.getInt(1);
                 
-                sql = String.format("SELECT tarif FROM MesinCuci JOIN Transaksi ON Transaksi.id_MC = MesinCuci.id_MC WHERE id_T = %d",id_T);
+                sql = String.format("SELECT tarif FROM MesinCuci JOIN Transaksi ON Transaksi.id_MC = MesinCuci.id_MC WHERE id_T = %d ",id_T);
                 rs = stmt.executeQuery(sql);
                 rs.next();
                 int tarif = rs.getInt(1);
@@ -432,10 +477,10 @@ public class App {
                 //Update biaya sesuai dengan tarif dan durasi penggunaan
                 sql = String.format("UPDATE Transaksi\r\n" + //
                                         "SET biaya = %d"+
-                                        "WHERE id_T = %d",biaya, id_T);
+                                        "WHERE id_T = %d AND flag = 1",biaya, id_T);
                 stmt.execute(sql);
                 
-                sql = String.format("SELECT biaya FROM Transaksi WHERE id_T = %d ", id_T);
+                sql = String.format("SELECT biaya FROM Transaksi WHERE id_T = %d AND flag = 1", id_T);
                 // int biaya = stmt.execute(sql);
 
                 sql = String.format("CREATE OR ALTER VIEW [Laporan Transaksi] AS\r\n" + //
@@ -444,12 +489,13 @@ public class App {
                                         "INNER JOIN Pelanggan ON Transaksi.id_Pel = Pelanggan.id_Pel\r\n" + //
                                         "INNER JOIN Pegawai ON Transaksi.id_Pg = Pegawai.id_Pg\r\n" + //
                                         "INNER JOIN MesinCuci ON Transaksi.id_MC = MesinCuci.id_MC\r\n" + //
-                                        "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M");
+                                        "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M\r\n"+
+                                        "WHERE Transaksi.flag = 1");
                 
                 stmt.execute(sql);
                 System.out.printf("\nTotal biaya jasa : %d",biaya);
                 Thread.sleep(500);
-                System.out.println("Mesin Cuci telah dimatikan");
+                System.out.println("\nMesin Cuci telah dimatikan");
 
             } else {
                 System.out.println("Mesin Cuci sudah tersedia sebelumnya");
@@ -482,9 +528,9 @@ public class App {
             tanggalMulai = (tahunStart.concat(bulanStart).concat(hariStart));
             tanggalAkhir = (tahunEnd.concat(bulanEnd).concat(hariEnd));
 
-            System.out.println(tanggalMulai+"====="+tanggalAkhir);
+            // System.out.println(tanggalMulai+"====="+tanggalAkhir);
 
-            sql = String.format("SELECT * FROM Transaksi WHERE tgl_T > '%s' AND tgl_T < '%s'", tanggalMulai,tanggalAkhir);
+            sql = String.format("SELECT * FROM Transaksi WHERE tgl_T > '%s' AND tgl_T < '%s' AND flag = 1", tanggalMulai,tanggalAkhir);
             ResultSet rs = stmt.executeQuery(sql);
             
             System.out.println("\n=======================\n");
@@ -506,7 +552,7 @@ public class App {
                     System.out.print(columnValue);
                 }System.out.println();
             }
-            sql = String.format("SELECT SUM(biaya) FROM Transaksi WHERE tgl_T > '%s' AND tgl_T < '%s'", tanggalMulai,tanggalAkhir);
+            sql = String.format("SELECT SUM(biaya) FROM Transaksi WHERE tgl_T >= '%s' AND tgl_T <= '%s' AND flag = 1", tanggalMulai,tanggalAkhir);
             rs = stmt.executeQuery(sql);
             rs.next();
 
@@ -531,7 +577,7 @@ public class App {
             String sql;
             ResultSet rs;
             
-            sql = String.format("SELECT * FROM Transaksi WHERE id_MC = %d",idMC);
+            sql = String.format("SELECT * FROM Transaksi WHERE id_MC = %d AND flag=1",idMC);
             rs = stmt.executeQuery(sql);
             
             System.out.println("\n=======================\n");
@@ -555,6 +601,55 @@ public class App {
             }
             System.out.println("\n=======================\n");
 
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+    }
+
+    public static void viewTransaksiSatuHari(Connection conn,Scanner sc){
+        try {
+            String sql, tahunStart, bulanStart, hariStart, tanggalMulai;
+            Statement stmt = conn.createStatement();
+            
+            System.out.printf("\nFormat : [DD/MM/YYYY]\n");
+            System.out.printf("\nHari Awal  :"); hariStart = sc.next();
+            System.out.printf("\nBulan Awal :"); bulanStart = sc.next();
+            System.out.printf("\nTahun Awal :"); tahunStart =sc.next();
+            
+            tanggalMulai = (tahunStart.concat(bulanStart).concat(hariStart));
+            ResultSet rs;
+            
+            
+            sql = String.format("SELECT * FROM Transaksi WHERE flag=1 AND tgl_T > '%s' AND tgl_T < (SELECT DATEADD(DAY,1,'%s'))",tanggalMulai,tanggalMulai);
+            rs = stmt.executeQuery(sql);
+            
+            System.out.println("\n=======================\n");
+            ResultSetMetaData rsmd = rs.getMetaData();
+    
+            int numberOfColumn = rsmd.getColumnCount();
+            for (int i =1; i<=numberOfColumn;i++){
+                if(i>1) System.out.print("\t");
+                String columnName = rsmd.getColumnName(i);
+                System.out.print(columnName);
+            }
+            System.out.println();
+
+            while(rs.next()){
+                for (int i =1; i<=numberOfColumn;i++){
+                    
+                    if(i>1) System.out.print("\t");
+                    String columnValue = rs.getString(i);
+                    System.out.print(columnValue);
+                }System.out.println();
+            }
+            System.out.println("\n=======================\n");
+            sql = String.format("SELECT SUM(biaya) FROM Transaksi WHERE tgl_T > '%s' AND tgl_T < (SELECT DATEADD(DAY,1,'%s')) AND flag = 1",tanggalMulai,tanggalMulai);
+            rs = stmt.executeQuery(sql);
+            rs.next();
+
+            int pendapatan = rs.getInt(1);
+            System.out.printf("\nTotal pendapatan pada tanggal %s/%s/%s = %d",hariStart,bulanStart,tahunStart,pendapatan);
+            
         } catch (Exception e) {
             // TODO: handle exception
         }
@@ -600,7 +695,13 @@ public class App {
         try{
             System.out.println("\n=======================\n");
             Statement stmt = conn.createStatement();
-            String sql = String.format("SELECT * FROM %s",namaTabel);
+            String sql;
+            if(namaTabel.equalsIgnoreCase("mesincuci")||namaTabel.equalsIgnoreCase("pelanggan")){
+                sql = String.format("SELECT * FROM %s WHERE flag =1",namaTabel);
+            } else{
+                sql = String.format("SELECT * FROM %s",namaTabel);
+
+            }
             ResultSet rs = stmt.executeQuery(sql);
             ResultSetMetaData rsmd = rs.getMetaData();
     
@@ -667,7 +768,7 @@ public class App {
         try{
             System.out.println("\n=======================\n");
             Statement stmt = conn.createStatement();
-            String sql = String.format("SELECT id_MC, MesinCuci.nama, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M WHERE statMC = 1");
+            String sql = String.format("SELECT id_MC, MesinCuci.nama, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M WHERE statMC = 1 AND MesinCuci.flag=1");
             ResultSet rs = stmt.executeQuery(sql);
             ResultSetMetaData rsmd = rs.getMetaData();
     
@@ -791,13 +892,24 @@ public class App {
                                 break;
                         }
 
-                    } else if(user_Action ==3) {        //Update Tarif
-                        updateMC(sc, conn);
-                        
+                    } else if(user_Action ==3) {        //Update Tarif  
+                        int idx;
+                        System.out.printf("\n1. Update Mesin Cuci\n2. Update Pelanggan");
+                        System.out.printf("\n\t->"); idx = sc.nextInt();
+                        if(idx==1) updateMC(sc, conn);
+                        else if (idx==2) updatePelanggan(sc, conn);
                     } else if(user_Action ==2) {        //Delete data
+                        int idx;
+                        System.out.printf("\n1. Delte Mesin Cuci\n2. Delete Pelanggan");
+                        System.out.printf("\n\t->"); idx = sc.nextInt();
 
-                        if(deleteDataMesinCuci(sc, conn)) System.out.println("Delete Successful");
-                        else System.out.println("Delete Failed");
+                        // if(deletePelanggan (sc, conn)) System.out.println("Delete Successful");
+                        // else System.out.println("Delete Failed");
+                        if(idx==1){
+                            deleteDataMesinCuci(sc, conn);
+                        }else if(idx ==2){
+                            deletePelanggan(sc, conn);
+                        }
                         
                     } else if(user_Action==4){
 
@@ -816,13 +928,15 @@ public class App {
 
                     } else if(user_Action==6){
                         // printFull(conn,"Transaksi");
-                        System.out.println("\n1. Seluruh Transaksi\n2. Transaksi dan pendapatan pada rentang tanggal\n");
+                        System.out.println("\n1. Seluruh Transaksi\n2. Transaksi dan pendapatan pada rentang tanggal\n3. Transaksi pada satu tanggal");
                         System.out.println("\t->");int inpTransaksi= sc.nextInt();
 
                         if(inpTransaksi==1){
                             printFull(conn, "[Laporan Transaksi]");
                         } else if (inpTransaksi==2){
                             viewAllTransaksi(sc, conn);
+                        } else if(inpTransaksi ==3){
+                            viewTransaksiSatuHari(conn, sc);
                         }
 
                     } else if(user_Action==7){
