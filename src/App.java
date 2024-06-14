@@ -321,13 +321,13 @@ public class App {
                 
                 
                 sql = String.format("UPDATE Pelanggan\n" + //
-                "SET noHP = '%s', alamat = '%s', id_Kel = %d\r\n"+
+                "SET no_HP = '%s', alamat = '%s', id_Kel = %d\r\n"+
                 "WHERE id_Pel = %d AND flag = 1",noHP,alamat, id_Kel, idx);
                 
             } else if (inpYNAlamat.toLowerCase().equals("n") && inpYNHP.toLowerCase().equals("y")){
                 System.out.printf("\n Input No HP (<=12) :"); noHP= sc.next();
                 sql = String.format("UPDATE Pelanggan\n" + //
-                "SET noHP = '%s'\r\n"+
+                "SET no_HP = '%s'\r\n"+
                 "WHERE id_Pel = %d AND flag = 1",noHP,idx);
                 
                 
@@ -349,7 +349,7 @@ public class App {
             printFull(conn,"Pelanggan");
         } catch (SQLException e) {
             // TODO Auto-generated catch block
-            // e.printStackTrace();
+            e.printStackTrace();
             System.out.println("Pelanggan tidak ada");
 
            
@@ -393,7 +393,7 @@ public class App {
                                         "INNER JOIN Pegawai ON Transaksi.id_Pg = Pegawai.id_Pg\r\n" + //
                                         "INNER JOIN MesinCuci ON Transaksi.id_MC = MesinCuci.id_MC\r\n" + //
                                         "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M\r\n"+
-                                        "WHERE MesinCuci.flag = 1 AND Pelanggan.flag = 1");
+                                        "WHERE MesinCuci.flag = 1 AND Pelanggan.flag = 1 AND Transaksi.flag =1");
                 stmt.execute(sql);
 
                 System.out.println("Mesin Cuci telah diaktifkan");
@@ -490,7 +490,7 @@ public class App {
                                         "INNER JOIN Pegawai ON Transaksi.id_Pg = Pegawai.id_Pg\r\n" + //
                                         "INNER JOIN MesinCuci ON Transaksi.id_MC = MesinCuci.id_MC\r\n" + //
                                         "INNER JOIN Merek ON MesinCuci.id_M =Merek.id_M\r\n"+
-                                        "WHERE Transaksi.flag = 1");
+                                        "WHERE MesinCuci.flag = 1 AND Pelanggan.flag = 1 AND Transaksi.flag =1");
                 
                 stmt.execute(sql);
                 System.out.printf("\nTotal biaya jasa : %d",biaya);
@@ -510,7 +510,7 @@ public class App {
     }
 
 //===============================================================================================================================================
-    static void viewAllTransaksi(Scanner sc,Connection conn){
+    static void viewTransaksiRentang(Scanner sc,Connection conn){
         try {
             String sql, tahunStart, bulanStart, hariStart,tahunEnd, bulanEnd, hariEnd, tanggalMulai, tanggalAkhir;
             Statement stmt = conn.createStatement();
@@ -530,7 +530,10 @@ public class App {
 
             // System.out.println(tanggalMulai+"====="+tanggalAkhir);
 
-            sql = String.format("SELECT * FROM Transaksi WHERE tgl_T > '%s' AND tgl_T < '%s' AND flag = 1", tanggalMulai,tanggalAkhir);
+            sql = String.format("SELECT id_T, Transaksi.id_Pel, id_Pg, tgl_T, startT, endT, durasi, biaya\r\n" + //
+                                "FROM Transaksi\r\n" + //
+                                "JOIN Pelanggan ON Transaksi.id_Pel = Pelanggan.id_Pel\r\n" + //
+                                "WHERE Pelanggan.flag=1 AND tgl_T > '%s' AND tgl_T < '%s' ", tanggalMulai,tanggalAkhir);
             ResultSet rs = stmt.executeQuery(sql);
             
             System.out.println("\n=======================\n");
@@ -620,7 +623,10 @@ public class App {
             ResultSet rs;
             
             
-            sql = String.format("SELECT * FROM Transaksi WHERE flag=1 AND tgl_T > '%s' AND tgl_T < (SELECT DATEADD(DAY,1,'%s'))",tanggalMulai,tanggalMulai);
+            sql = String.format("SELECT id_T, Transaksi.id_Pel, id_Pg, tgl_T, startT, endT, durasi, biaya\r\n" + //
+                                "FROM Transaksi\r\n" + //
+                                "JOIN Pelanggan ON Transaksi.id_Pel = Pelanggan.id_Pel\r\n" + //
+                                "WHERE Pelanggan.flag=1 AND tgl_T > '%s' AND tgl_T < (SELECT DATEADD(DAY,1,'%s'))",tanggalMulai,tanggalMulai);
             rs = stmt.executeQuery(sql);
             
             System.out.println("\n=======================\n");
@@ -737,7 +743,7 @@ public class App {
         try{
             System.out.println("\n=======================\n");
             Statement stmt = conn.createStatement();
-            String sql = String.format("SELECT id_MC, MesinCuci.nama, tarif, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M");
+            String sql = String.format("SELECT id_MC, MesinCuci.nama, tarif, kap, Merek.nama AS merek FROM MesinCuci JOIN Merek ON MesinCuci.id_M = Merek.id_M WHERE MesinCuci.flag=1");
             ResultSet rs = stmt.executeQuery(sql);
             ResultSetMetaData rsmd = rs.getMetaData();
     
@@ -799,7 +805,8 @@ public class App {
         try{
             System.out.println("\n=======================\n");
             Statement stmt = conn.createStatement();
-            String sql = String.format("SELECT id_Pel, Pelanggan.nama, no_HP,alamat, email, Kelurahan.nama FROM Pelanggan JOIN Kelurahan ON Pelanggan.id_Kel = Kelurahan.id_Kel");
+            String sql = String.format("SELECT id_Pel, Pelanggan.nama, no_HP,alamat, email, Kelurahan.nama FROM Pelanggan JOIN Kelurahan ON Pelanggan.id_Kel = Kelurahan.id_Kel\n"+
+                                                "WHERE flag=1");
             ResultSet rs = stmt.executeQuery(sql);
             ResultSetMetaData rsmd = rs.getMetaData();
     
@@ -900,7 +907,7 @@ public class App {
                         else if (idx==2) updatePelanggan(sc, conn);
                     } else if(user_Action ==2) {        //Delete data
                         int idx;
-                        System.out.printf("\n1. Delte Mesin Cuci\n2. Delete Pelanggan");
+                        System.out.printf("\n1. Delete Mesin Cuci\n2. Delete Pelanggan");
                         System.out.printf("\n\t->"); idx = sc.nextInt();
 
                         // if(deletePelanggan (sc, conn)) System.out.println("Delete Successful");
@@ -934,7 +941,7 @@ public class App {
                         if(inpTransaksi==1){
                             printFull(conn, "[Laporan Transaksi]");
                         } else if (inpTransaksi==2){
-                            viewAllTransaksi(sc, conn);
+                            viewTransaksiRentang(sc, conn);
                         } else if(inpTransaksi ==3){
                             viewTransaksiSatuHari(conn, sc);
                         }
